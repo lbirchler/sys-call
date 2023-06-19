@@ -61,16 +61,12 @@ CONVENTIONS = {
 class Color():
   @staticmethod
   def red(msg): return f'\033[91m{msg}\033[0m'
-
   @staticmethod
   def green(msg): return f'\033[92m{msg}\033[0m'
-
   @staticmethod
   def yellow(msg): return f'\033[93m{msg}\033[0m'
-
   @staticmethod
   def blue(msg): return f'\033[94m{msg}\033[0m'
-
   @staticmethod
   def cyan(msg): return f'\033[36m{msg}\033[0m'
 
@@ -78,10 +74,7 @@ class Color():
 def info(msg: str): print(Color.green(f'[+] {msg}'))
 def error(msg: str): print(Color.red(f'[!] {msg}'))
 def warning(msg: str): print(Color.yellow(f'[*] {msg}'))
-
-
-def debug(msg: str):
-  if _debug: print(Color.blue(f'[=] {msg}'))
+def debug(msg: str): print(Color.blue(f'[=] {msg}')) if _debug else print('', file=open('/dev/null', 'w'))
 
 
 def get_request(url: str) -> None | bytes:
@@ -124,29 +117,47 @@ class Syscalls:
       self._syscalls = json.load(f).get(self.arch)
     self._conventions = CONVENTIONS.get(self.arch)
 
-  def search(self, syscall: int | str):
+  def search(self, syscall: int | str) -> None | dict:
     key = 'nr' if str(syscall).isnumeric() else 'name'
     return next((item for item in self._syscalls if item.get(key) == syscall), None)
 
-  def display(self, syscall: int | str | None = None):
+  def display(self, syscalls: list[int | str] | None = None) -> None:
     table = Table(title=f'{self.arch} Syscalls')
-    syscalls = [self.search(syscall)] if syscall else self._syscalls
+    scs = [self.search(sc) for sc in syscalls] if syscalls else self._syscalls
+    if any(sc is None for sc in scs):
+      error(f'Invalid {self.arch} syscall(s): {" ".join(scs)}')
+      return
     cols = [
         (f'{k:<7} {self._conventions.get(k, "")}'.rstrip())
-        for k in syscalls[0].keys()
+        for k in scs[0].keys()
         if k not in ['refs', 'arch']
     ]
     for col in cols: table.add_column(col)
-    for sc in syscalls: table.add_row(*[str(v) for k, v in list(sc.items()) if k not in ['refs', 'arch']])
+    for sc in scs: table.add_row(*[str(v) for k, v in list(sc.items()) if k not in ['refs', 'arch']])
     console = Console()
     console.print(table)
 
 
 def main():
-  parser = argparse.ArgumentParser()
-  parser.add_argument('arch', nargs='?', choices=sorted(ARCHS), default='x64')
-  parser.add_argument('syscall', nargs='*', help='syscall name or number')
-  parser.add_argument('--update', action='store_true', help='Update syscall db')
+  parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument(
+      'arch',
+      metavar='arch',
+      nargs='?',
+      choices=sorted(ARCHS),
+      help=', '.join(ARCHS),
+      default='x64'
+  )
+  parser.add_argument(
+      'syscall',
+      nargs='*',
+      help='syscall name or number'
+  )
+  parser.add_argument(
+      '--update',
+      action='store_true',
+      help='Update syscall database'
+  )
 
   if len(sys.argv) < 2:
     parser.print_usage()
@@ -158,8 +169,9 @@ def main():
     update_syscall_db()
     sys.exit(0)
 
-  Syscalls(args.arch).display(args.syscall)
+  Syscalls(args.arch).display([sc for sc in args.syscall])
 
 
 if __name__ == '__main__':
+  debug('test')
   main()
