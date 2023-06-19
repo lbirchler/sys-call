@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import sys
+from collections import namedtuple
 from datetime import datetime
 from threading import Thread
 from urllib.request import Request
@@ -15,7 +16,6 @@ from rich.table import Table
 _debug = os.environ.get('DEBUG')
 
 ARCHS = ('arm', 'arm64', 'x64', 'x86')
-PLATFORMS = ('Linux/ARM', 'Linux/x86', 'Linux/x86-x64', 'x86')
 SYSCALL_DB = pathlib.Path.cwd() / 'syscalldb.json'
 
 CONVENTIONS = {
@@ -137,6 +137,36 @@ class Syscalls:
     console.print(table)
 
 
+class Shellcode:
+
+  Example = namedtuple('Example', ['author', 'platform', 'desc', 'id'])
+
+  def __init__(self, arch: str):
+    self.arch = arch
+
+    if 'arm' in self.arch: self.platform = 'Linux/ARM'
+    elif self.arch == 'x86': self.platform = 'Linux/x86'
+    elif self.arch == 'x64': self.platform = 'Linux/x86-64'
+
+  def search(self, syscall: str) -> list[Example]:
+    data = get_request(f'http://shell-storm.org/api/?s={syscall}')
+    if not data: return
+    examples = data.decode().split('\n')
+    examples = (e.split('::::') for e in examples)
+    examples = (self.Example(*e[:-1]) for e in examples if len(e) == 5)
+    return list(e for e in examples if self.platform in e.platform)
+
+  def display(self, syscalls: list[str]) -> None:
+    examples = []
+    for sc in syscalls: examples.extend(self.search(sc))
+    if any(ex is None for ex in examples): return
+    table = Table(title=f'{self.arch} Shellcode')
+    for col in examples[0]._fields: table.add_column(col)
+    for ex in examples: table.add_row(*ex._asdict().values())
+    console = Console()
+    console.print(table, markup=False)
+
+
 def main():
   parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument(
@@ -157,6 +187,11 @@ def main():
       action='store_true',
       help='Update syscall database'
   )
+  parser.add_argument(
+      '--shellcode',
+      action='store_true',
+      help='Search shell-store for shellcode examples'
+  )
 
   if len(sys.argv) < 2:
     parser.print_usage()
@@ -168,7 +203,10 @@ def main():
     update_syscall_db()
     sys.exit(0)
 
-  Syscalls(args.arch).display([sc for sc in args.syscall])
+  if args.shellcode:
+    Shellcode(args.arch).display([sc for sc in args.syscall])
+  else:
+    Syscalls(args.arch).display([sc for sc in args.syscall])
 
 
 if __name__ == '__main__':
