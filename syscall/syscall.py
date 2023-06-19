@@ -60,13 +60,13 @@ def get_request(url: str) -> None | bytes:
 def update_syscall_db() -> None:
   def fetch(db: dict, arch: str):
     data = get_request(f'https://api.syscall.sh/v1/syscalls/{arch}')
-    if data: 
+    if data:
       db[arch] = json.loads(data)
       info(f'Updated {arch} syscalls')
 
   db = {
-    'last_updated_ts': datetime.now().replace(microsecond=0).isoformat(),
-    'source': 'https://syscall.sh/'
+      'last_updated_ts': datetime.now().replace(microsecond=0).isoformat(),
+      'source': 'https://syscall.sh/'
   }
   threads = [Thread(target=fetch, args=(db, arch)) for arch in ARCHS]
   for thread in threads: thread.start()
@@ -159,7 +159,9 @@ class Shellcode:
     )
 
 
-def info_main():
+class CLI:
+
+  # base parser
   parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument(
       '-a', '--arch',
@@ -168,37 +170,31 @@ def info_main():
       default=DEFAULT_ARCH
   )
   parser.add_argument('syscall', nargs='*', help='syscall name(s)')
-  parser.add_argument('--update', action='store_true', help='Update syscall database')
 
-  if len(sys.argv) < 2:
-    parser.print_usage()
-    sys.exit(1)
+  @staticmethod
+  def shellcode():
+    parser = CLI.parser
+    parser.add_argument('--get', type=int, help='shell-storm shellcode id')
+    CLI.check_args(parser)
+    args = parser.parse_args()
+    shellcode = Shellcode(args.arch)
+    if args.get:
+      shellcode.get(args.get)
+    else:
+      shellcode.display([sc for sc in args.syscall])
 
-  args = parser.parse_args()
+  @staticmethod
+  def info():
+    parser = CLI.parser
+    parser.add_argument('--update', action='store_true', help='Update syscall database')
+    CLI.check_args(parser)
+    args = parser.parse_args()
+    if args.update:
+      sys.exit(update_syscall_db())
+    Syscalls(args.arch).display([sc for sc in args.syscall])
 
-  if args.update:
-    sys.exit(update_syscall_db())
-
-  Syscalls(args.arch).display([sc for sc in args.syscall])
-
-
-def shellcode_main():
-  parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
-  parser.add_argument(
-      '-a', '--arch',
-      choices=sorted(ARCHS),
-      help=', '.join(ARCHS),
-      default=DEFAULT_ARCH
-  )
-  parser.add_argument('syscall', nargs='*', help='syscall name(s)')
-  parser.add_argument('--get', type=int, help='shell-storm shellcode id')
-
-  if len(sys.argv) < 2:
-    parser.print_usage()
-    sys.exit(1)
-
-  args = parser.parse_args()
-
-  shellcode = Shellcode(args.arch)
-  if args.get: shellcode.get(args.get)
-  else: shellcode.display([sc for sc in args.syscall])
+  @staticmethod
+  def check_args(parser):
+    if len(sys.argv) < 2:
+      parser.print_usage()
+      sys.exit(1)

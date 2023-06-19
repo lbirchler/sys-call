@@ -37,8 +37,8 @@ setup(
     install_requires=['rich'],
     entry_points={
         'console_scripts': [
-            'syscall-info=syscall.syscall:info_main',
-            'syscall-shellcode=syscall.syscall:shellcode_main'
+            'syscall-info=syscall.syscall:CLI.info',
+            'syscall-shellcode=syscall.syscall:CLI.shellcode'
         ]
     }
 )
