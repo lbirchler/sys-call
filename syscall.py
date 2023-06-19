@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import json
+import os
 import pathlib
 import sys
 from datetime import datetime
@@ -8,13 +9,52 @@ from threading import Thread
 from urllib.request import Request
 from urllib.request import urlopen
 
+from rich.console import Console
+from rich.table import Table
+
+_debug = os.environ.get('DEBUG')
+
 ARCHS = ('arm', 'arm64', 'x64', 'x86')
+PLATFORMS = ('Linux/ARM', 'Linux/x86', 'Linux/x86-x64', 'x86')
 SYSCALL_DB = pathlib.Path.cwd() / 'syscalldb.json'
+
 CONVENTIONS = {
-    'x86': {'return': 'eax', 'arg0': 'ebx', 'arg1': 'ecx', 'arg2': 'edx', 'arg3': 'esi', 'arg4': 'edi', 'arg5': 'ebp'},
-    'x64': {'return': 'rax', 'arg0': 'rdi', 'arg1': 'rsi', 'arg2': 'rdx', 'arg3': 'r10', 'arg4': 'r8', 'arg5': 'r9'},
-    'arm': {'return': 'r0', 'arg0': 'r0', 'arg1': 'r1', 'arg2': 'r2', 'arg3': 'r3', 'arg4': 'r4', 'arg5': 'r5'},
-    'arm64': {'return': 'x0', 'arg0': 'x0', 'arg1': 'x1', 'arg2': 'x2', 'arg3': 'x3', 'arg4': 'x4', 'arg5': 'x5'},
+    'x86': {
+        'return': 'eax',
+        'arg0': 'ebx',
+        'arg1': 'ecx',
+        'arg2': 'edx',
+        'arg3': 'esi',
+        'arg4': 'edi',
+        'arg5': 'ebp'
+    },
+    'x64': {
+        'return': 'rax',
+        'arg0': 'rdi',
+        'arg1': 'rsi',
+        'arg2': 'rdx',
+        'arg3': 'r10',
+        'arg4': 'r8',
+        'arg5': 'r9'
+    },
+    'arm': {
+        'return': 'r0',
+        'arg0': 'r0',
+        'arg1': 'r1',
+        'arg2': 'r2',
+        'arg3': 'r3',
+        'arg4': 'r4',
+        'arg5': 'r5'
+    },
+    'arm64': {
+        'return': 'x0',
+        'arg0': 'x0',
+        'arg1': 'x1',
+        'arg2': 'x2',
+        'arg3': 'x3',
+        'arg4': 'x4',
+        'arg5': 'x5'
+    },
 }
 
 
@@ -37,8 +77,11 @@ class Color():
 
 def info(msg: str): print(Color.green(f'[+] {msg}'))
 def error(msg: str): print(Color.red(f'[!] {msg}'))
-def debug(msg: str): print(Color.blue(f'[=] {msg}'))
 def warning(msg: str): print(Color.yellow(f'[*] {msg}'))
+
+
+def debug(msg: str):
+  if _debug: print(Color.blue(f'[=] {msg}'))
 
 
 def get_request(url: str) -> None | bytes:
@@ -50,7 +93,7 @@ def get_request(url: str) -> None | bytes:
     return None
 
 
-def update_syscall_db_fast() -> None:
+def update_syscall_db() -> None:
   def fetch(db: dict, arch: str):
     data = get_request(f'https://api.syscall.sh/v1/syscalls/{arch}')
     if data: db[arch] = json.loads(data)
@@ -67,16 +110,43 @@ def update_syscall_db_fast() -> None:
 
 
 def get_syscall(arch: str, syscall: str | int) -> None | dict:
-  key = 'name' if isinstance(syscall, str) else 'nr'
+  key = 'nr' if str(syscall).isnumeric() else 'name'
   with open(SYSCALL_DB) as f:
     syscalls = json.load(f)
   return next((item for item in syscalls.get(arch) if item.get(key) == syscall), None)
 
+
+class Syscalls:
+
+  def __init__(self, arch: str) -> None:
+    self.arch = arch
+    with open(SYSCALL_DB) as f:
+      self._syscalls = json.load(f).get(self.arch)
+    self._conventions = CONVENTIONS.get(self.arch)
+
+  def search(self, syscall: int | str):
+    key = 'nr' if str(syscall).isnumeric() else 'name'
+    return next((item for item in self._syscalls if item.get(key) == syscall), None)
+
+  def display(self, syscall: int | str | None = None):
+    table = Table(title=f'{self.arch} Syscalls')
+    syscalls = [self.search(syscall)] if syscall else self._syscalls
+    cols = [
+        (f'{k:<7} {self._conventions.get(k, "")}'.rstrip())
+        for k in syscalls[0].keys()
+        if k not in ['refs', 'arch']
+    ]
+    for col in cols: table.add_column(col)
+    for sc in syscalls: table.add_row(*[str(v) for k, v in list(sc.items()) if k not in ['refs', 'arch']])
+    console = Console()
+    console.print(table)
+
+
 def main():
   parser = argparse.ArgumentParser()
-  parser.add_argument('arch', choices=sorted(ARCHS), default='x64')
-  parser.add_argument('--syscall', help='syscall name or number')
-  # parser.add_argument('--update', action='store_true', help='Update syscall db')
+  parser.add_argument('arch', nargs='?', choices=sorted(ARCHS), default='x64')
+  parser.add_argument('syscall', nargs='*', help='syscall name or number')
+  parser.add_argument('--update', action='store_true', help='Update syscall db')
 
   if len(sys.argv) < 2:
     parser.print_usage()
@@ -84,10 +154,11 @@ def main():
 
   args = parser.parse_args()
 
-  # if args.update: update_syscall_db()
-  scs = get_syscall(args.arch, args.syscall)
-  if scs:
-    for sc in scs: display_syscall(sc)
+  if args.update:
+    update_syscall_db()
+    sys.exit(0)
+
+  Syscalls(args.arch).display(args.syscall)
 
 
 if __name__ == '__main__':
