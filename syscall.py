@@ -81,6 +81,14 @@ def get_syscall(arch: str, syscall: str | int) -> None | dict:
   return next((item for item in syscalls.get(arch) if item.get(key) == syscall), None)
 
 
+def print_table(title: str, cols: list, rows: list):
+  table = Table(title=title)
+  for col in cols: table.add_column(col)
+  for row in rows: table.add_row(*row)
+  console = Console()
+  console.print(table, markup=False)
+
+
 class Syscalls:
 
   def __init__(self, arch: str) -> None:
@@ -94,20 +102,22 @@ class Syscalls:
     return next((item for item in self._syscalls if item.get('name') == syscall), None)
 
   def display(self, syscalls: list[str] | None = None) -> None:
-    table = Table(title=f'{self.arch} Syscalls')
     scs = [self.search(sc) for sc in syscalls] if syscalls else self._syscalls
     if any(sc is None for sc in scs):
       error(f'Invalid {self.arch} syscall(s): {" ".join(syscalls)}')
       return
-    cols = [
-        (f'{k:<7} {self._conventions.get(k, "")}'.rstrip())
-        for k in scs[0].keys()
-        if k not in ['refs', 'arch']
-    ]
-    for col in cols: table.add_column(col)
-    for sc in scs: table.add_row(*[str(v) for k, v in list(sc.items()) if k not in ['refs', 'arch']])
-    console = Console()
-    console.print(table)
+    print_table(
+        title=f'{self.arch} Syscalls',
+        cols=[
+            (f'{k:<7} {self._conventions.get(k, "")}'.rstrip())
+            for k in scs[0].keys()
+            if k not in ['refs', 'arch']
+        ],
+        rows=[
+            [str(v) for k, v in list(sc.items()) if k not in ['refs', 'arch']]
+            for sc in scs
+        ]
+    )
 
 
 class Shellcode:
@@ -139,11 +149,11 @@ class Shellcode:
     examples = []
     for sc in syscalls: examples.extend(self.search(sc))
     if any(ex is None for ex in examples): return
-    table = Table(title=f'{self.arch} Shellcode')
-    for col in examples[0]._fields: table.add_column(col)
-    for ex in examples: table.add_row(*ex._asdict().values())
-    console = Console()
-    console.print(table, markup=False)
+    print_table(
+        title=f'{self.arch} Shellcode',
+        cols=[col for col in examples[0]._fields],
+        rows=[ex._asdict().values() for ex in examples]
+    )
 
 
 def main():
