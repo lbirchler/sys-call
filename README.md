@@ -10,7 +10,7 @@ Data Sources:
 
 ## Install
 ```
-pip install syscall
+pip install sys-call
 ```
 
 ## Usage 
@@ -44,7 +44,7 @@ $ syscall-info execve
 
 For multiple syscalls:
 ```
-$ syscall-info read write exit
+$ syscall-info open read write
                                                         x64 Syscalls                                                        
 ┏━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ nr ┃ name  ┃ return  rax ┃ arg0    rdi          ┃ arg1    rsi     ┃ arg2    rdx  ┃ arg3    r10 ┃ arg4    r8 ┃ arg5    r9 ┃

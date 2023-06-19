@@ -21,20 +21,23 @@ def get_version(rel_path: str) -> str:
 long_description = read('README.md')
 
 setup(
-    name='syscall',
+    name='sys-call',
     version=get_version('syscall/__init__.py'),
     description='Linux Syscall implementations, calling conventions, and shellcode examples.',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     packages=find_packages(include=['syscall', 'syscall.*']),
     author='Lawrence Birchler',
     author_email='bplyr@tutanota.com',
     url='http://github.com/lbirchler/syscall/',
+    install_requires=[
+      'rich>13.4.0'
+    ],
     classifiers=[
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
     ],
-    install_requires=['rich'],
     entry_points={
         'console_scripts': [
             'syscall-info=syscall.syscall:CLI.info',
