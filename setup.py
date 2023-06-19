@@ -29,7 +29,7 @@ setup(
     packages=find_packages(include=['syscall', 'syscall.*']),
     author='Lawrence Birchler',
     author_email='bplyr@tutanota.com',
-    url='http://github.com/lbirchler/syscall/',
+    url='http://github.com/lbirchler/sys-call/',
     install_requires=[
       'rich>13.4.0'
     ],
