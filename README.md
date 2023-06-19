@@ -1,5 +1,15 @@
 # syscall
----
+
+CLI utility to display calling conventions and shellcode examples for Linux
+syscalls 
+
+Supported Architectures: *ARM*, *ARM64*, *x64*, *x86*
+
+Data Sources:
+
+- Syscall implementations and calling conventions: [syscall.sh](https://syscall.sh) 
+
+- Shellcode Examples: [shell-storm](http://shell-storm.org/shellcode/index.html)
 
 ## Usage
 ```
