@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 import argparse
+import html
 import json
 import os
 import pathlib
+import re
 import sys
 from collections import namedtuple
 from datetime import datetime
@@ -16,45 +18,14 @@ from rich.table import Table
 _debug = os.environ.get('DEBUG')
 
 ARCHS = ('arm', 'arm64', 'x64', 'x86')
+DEFAULT_ARCH = 'x64'
 SYSCALL_DB = pathlib.Path.cwd() / 'syscalldb.json'
 
 CONVENTIONS = {
-    'x86': {
-        'return': 'eax',
-        'arg0': 'ebx',
-        'arg1': 'ecx',
-        'arg2': 'edx',
-        'arg3': 'esi',
-        'arg4': 'edi',
-        'arg5': 'ebp'
-    },
-    'x64': {
-        'return': 'rax',
-        'arg0': 'rdi',
-        'arg1': 'rsi',
-        'arg2': 'rdx',
-        'arg3': 'r10',
-        'arg4': 'r8',
-        'arg5': 'r9'
-    },
-    'arm': {
-        'return': 'r0',
-        'arg0': 'r0',
-        'arg1': 'r1',
-        'arg2': 'r2',
-        'arg3': 'r3',
-        'arg4': 'r4',
-        'arg5': 'r5'
-    },
-    'arm64': {
-        'return': 'x0',
-        'arg0': 'x0',
-        'arg1': 'x1',
-        'arg2': 'x2',
-        'arg3': 'x3',
-        'arg4': 'x4',
-        'arg5': 'x5'
-    },
+    'x86': {'return': 'eax', 'arg0': 'ebx', 'arg1': 'ecx', 'arg2': 'edx', 'arg3': 'esi', 'arg4': 'edi', 'arg5': 'ebp'},
+    'x64': {'return': 'rax', 'arg0': 'rdi', 'arg1': 'rsi', 'arg2': 'rdx', 'arg3': 'r10', 'arg4': 'r8', 'arg5': 'r9'},
+    'arm': {'return': 'r0', 'arg0': 'r0', 'arg1': 'r1', 'arg2': 'r2', 'arg3': 'r3', 'arg4': 'r4', 'arg5': 'r5'},
+    'arm64': {'return': 'x0', 'arg0': 'x0', 'arg1': 'x1', 'arg2': 'x2', 'arg3': 'x3', 'arg4': 'x4', 'arg5': 'x5'},
 }
 
 
@@ -80,6 +51,7 @@ def debug(msg: str): print(Color.blue(f'[=] {msg}')) if _debug else print('', fi
 def get_request(url: str) -> None | bytes:
   try:
     with urlopen(Request(url, headers={'User-Agent': 'Mozilla/5.0'})) as f:
+      debug(f'{f.status} - {url}')
       return f.read()
   except Exception as e:
     error('Request error: %r' % e)
@@ -150,11 +122,17 @@ class Shellcode:
 
   def search(self, syscall: str) -> list[Example]:
     data = get_request(f'http://shell-storm.org/api/?s={syscall}')
-    if not data: return
+    if not data: error('Unable to find shellcode examples for: %s' % syscall); return
     examples = data.decode().split('\n')
     examples = (e.split('::::') for e in examples)
     examples = (self.Example(*e[:-1]) for e in examples if len(e) == 5)
     return list(e for e in examples if self.platform in e.platform)
+
+  def get(self, sid: int):
+    data = get_request(f'http://shell-storm.org/shellcode/files/shellcode-{sid}.html')
+    if not data: error('Invalid shellcode id: %d' % sid); return
+    match = re.search(r'<pre[^>]*>([^<]+)</pre>', data.decode())
+    if match: print(html.unescape(match.group(1)))
 
   def display(self, syscalls: list[str]) -> None:
     examples = []
@@ -170,28 +148,20 @@ class Shellcode:
 def main():
   parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument(
-      'arch',
-      metavar='arch',
-      nargs='?',
+      '-a', '--arch',
       choices=sorted(ARCHS),
       help=', '.join(ARCHS),
-      default='x64'
+      default=DEFAULT_ARCH
   )
-  parser.add_argument(
-      'syscall',
-      nargs='*',
-      help='syscall name or number'
-  )
-  parser.add_argument(
-      '--update',
-      action='store_true',
-      help='Update syscall database'
-  )
-  parser.add_argument(
-      '--shellcode',
-      action='store_true',
-      help='Search shell-store for shellcode examples'
-  )
+  subparser = parser.add_subparsers(dest='cmd')
+
+  info_parser = subparser.add_parser('info', help='syscall info')
+  info_parser.add_argument('syscall', nargs='*', help='syscall name(s)')
+  info_parser.add_argument('--update', action='store_true', help='Update syscall database')
+
+  shellcode_parser = subparser.add_parser('shellcode', help='Search shell-storm for shellcode examples')
+  shellcode_parser.add_argument('syscall', nargs='*', help='syscall name(s)')
+  shellcode_parser.add_argument('--get', type=int, help='shell-storm shellcode id')
 
   if len(sys.argv) < 2:
     parser.print_usage()
@@ -199,13 +169,13 @@ def main():
 
   args = parser.parse_args()
 
-  if args.update:
-    update_syscall_db()
-    sys.exit(0)
+  if args.cmd == 'shellcode':
+    shellcode = Shellcode(args.arch)
+    if args.get: shellcode.get(args.get)
+    else: shellcode.display([sc for sc in args.syscall])
 
-  if args.shellcode:
-    Shellcode(args.arch).display([sc for sc in args.syscall])
-  else:
+  if args.cmd == 'info':
+    if args.update: update_syscall_db(); sys.exit(0)
     Syscalls(args.arch).display([sc for sc in args.syscall])
 
 
