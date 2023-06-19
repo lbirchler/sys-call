@@ -1,37 +1,39 @@
 # syscall
 
-CLI utility to display Linux Syscall implementations, calling conventions, and shellcode examples.
+CLI tool to display Linux Syscall implementations, calling conventions, and shellcode examples.
 
 Supported architectures: arm, arm64, x64, x86
 
+Data Sources:
+- Syscall implementations and calling conventions: [syscall.sh](https://syscall.sh) 
+- Shellcode Examples: [shell-storm](http://shell-storm.org/shellcode/index.html)
 
 ## Install
 ```
-#TODO
+pip install syscall
 ```
 
-## Usage
+## Usage 
+
+### `syscall-info`
 ```
-usage: syscall.py [-h] [-a {arm,arm64,x64,x86}] {info,shellcode} ...
+usage: syscall-info [-h] [-a {arm,arm64,x64,x86}] [--update] [syscall ...]
 
 positional arguments:
-  {info,shellcode}
-    info                syscall info
-    shellcode           Search shell-storm for shellcode examples
+  syscall               syscall name(s)
 
 options:
   -h, --help            show this help message and exit
-  -a {arm,arm64,x64,x86}, --arch {arm,arm64,x64,x86} 
-                          default x64
+  -a {arm,arm64,x64,x86}, --arch {arm,arm64,x64,x86}
+                                 defaults to x64
+  --update              Update syscall database
 ```
 
-## Examples
-
-### Info
+**Examples**
 
 For single syscall:
 ```
-$ ./syscall.py info execve
+$ syscall-info execve
                                                                   x64 Syscalls                                                                  
 ┏━━━━┳━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ nr ┃ name   ┃ return  rax ┃ arg0    rdi          ┃ arg1    rsi             ┃ arg2    rdx             ┃ arg3    r10 ┃ arg4    r8 ┃ arg5    r9 ┃
@@ -42,7 +44,7 @@ $ ./syscall.py info execve
 
 For multiple syscalls:
 ```
-$ ./syscall.py info read write exit
+$ syscall-info read write exit
                                                         x64 Syscalls                                                        
 ┏━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ nr ┃ name  ┃ return  rax ┃ arg0    rdi          ┃ arg1    rsi     ┃ arg2    rdx  ┃ arg3    r10 ┃ arg4    r8 ┃ arg5    r9 ┃
@@ -56,7 +58,7 @@ $ ./syscall.py info read write exit
 
 For all syscalls:
 ```
-$ ./syscall.py info
+$ syscall-info 
                                                                x64 Syscalls                                                                
 ┏━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
 ┃ nr  ┃ name           ┃ return  rax ┃ arg0    rdi    ┃ arg1    rsi    ┃ arg2    rdx    ┃ arg3    r10    ┃ arg4    r8    ┃ arg5    r9     ┃
@@ -73,15 +75,33 @@ $ ./syscall.py info
 
 Update syscall database:
 ```
-./syscall.py info --update
+$ syscall-info --update
+[+] Updated x64 syscalls
+[+] Updated arm64 syscalls
+[+] Updated arm syscalls
+[+] Updated x86 syscalls
 [+] Saved syscall db to: ./syscalldb.json
 ```
 
-### Shellcode
+### `syscall-shellcode`
+```
+usage: syscall-shellcode [-h] [-a {arm,arm64,x64,x86}] [--get GET] [syscall ...]
+
+positional arguments:
+  syscall               syscall name(s)
+
+options:
+  -h, --help            show this help message and exit
+  -a {arm,arm64,x64,x86}, --arch {arm,arm64,x64,x86}
+                                 defaults to x64
+  --get GET             shell-storm shellcode id
+```
+
+**Examples**
 
 Search for execve shellcode examples:
 ```
-$ ./syscall.py shellcode execve
+$ syscall-shellcode execve
                                                       x86 Shellcode 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━┓
 ┃ author                        ┃ platform     ┃ desc                                                              ┃ id  ┃
@@ -100,7 +120,7 @@ $ ./syscall.py shellcode execve
 
 Download shellcode example: 
 ```
-$ ./syscall.py shellcode --get 76
+$ syscall-shellcode --get 76
 
 # [Linux/X86-64]
 # Dummy for shellcode:
@@ -131,7 +151,3 @@ _start:
 
 ```
 
-
-**Data Sources**
-- Syscall implementations and calling conventions: [syscall.sh](https://syscall.sh) 
-- Shellcode Examples: [shell-storm](http://shell-storm.org/shellcode/index.html)

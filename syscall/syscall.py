@@ -166,8 +166,8 @@ class CLI:
   parser.add_argument(
       '-a', '--arch',
       choices=sorted(ARCHS),
-      help=', '.join(ARCHS),
-      default=DEFAULT_ARCH
+      help=f'\t defaults to {DEFAULT_ARCH}',
+      default=DEFAULT_ARCH,
   )
   parser.add_argument('syscall', nargs='*', help='syscall name(s)')
 
