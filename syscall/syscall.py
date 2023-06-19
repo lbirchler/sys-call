@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import html
 import json
@@ -77,13 +79,6 @@ def update_syscall_db() -> None:
     info('Saved syscall db to: %s' % SYSCALL_DB)
 
 
-def get_syscall(arch: str, syscall: str | int) -> None | dict:
-  key = 'nr' if str(syscall).isnumeric() else 'name'
-  with open(SYSCALL_DB) as f:
-    syscalls = json.load(f)
-  return next((item for item in syscalls.get(arch) if item.get(key) == syscall), None)
-
-
 def print_table(title: str, cols: list, rows: list):
   table = Table(title=title)
   for col in cols: table.add_column(col)
@@ -159,9 +154,7 @@ class Shellcode:
     )
 
 
-class CLI:
-
-  # base parser
+def main():
   parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument(
       '-a', '--arch',
@@ -169,32 +162,30 @@ class CLI:
       help=f'\t defaults to {DEFAULT_ARCH}',
       default=DEFAULT_ARCH,
   )
-  parser.add_argument('syscall', nargs='*', help='syscall name(s)')
 
-  @staticmethod
-  def shellcode():
-    parser = CLI.parser
-    parser.add_argument('--get', type=int, help='shell-storm shellcode id')
-    CLI.check_args(parser)
-    args = parser.parse_args()
+  cmd_parser = parser.add_subparsers(dest='cmd', help='commands')
+
+  info_parser = cmd_parser.add_parser('info')
+  info_parser.add_argument('--update', action='store_true', help='Update syscall database')
+  info_parser.add_argument('syscall', nargs='*', help='syscall name(s)')
+
+  shellcode_parser = cmd_parser.add_parser('shellcode')
+  shellcode_parser.add_argument('--get', type=int, help='download shell-storm example; specify id')
+  shellcode_parser.add_argument('syscall', nargs='*', help='syscall name(s)')
+
+  if len(sys.argv) < 2:
+    parser.print_usage()
+    sys.exit(1)
+
+  args = parser.parse_args()
+
+  if args.cmd == 'info':
+    if args.update:
+      sys.exit(update_syscall_db())
+    Syscalls(args.arch).display([sc for sc in args.syscall])
+  if args.cmd == 'shellcode':
     shellcode = Shellcode(args.arch)
     if args.get:
       shellcode.get(args.get)
     else:
       shellcode.display([sc for sc in args.syscall])
-
-  @staticmethod
-  def info():
-    parser = CLI.parser
-    parser.add_argument('--update', action='store_true', help='Update syscall database')
-    CLI.check_args(parser)
-    args = parser.parse_args()
-    if args.update:
-      sys.exit(update_syscall_db())
-    Syscalls(args.arch).display([sc for sc in args.syscall])
-
-  @staticmethod
-  def check_args(parser):
-    if len(sys.argv) < 2:
-      parser.print_usage()
-      sys.exit(1)
