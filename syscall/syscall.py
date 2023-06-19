@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import argparse
 import html
 import json
@@ -15,11 +14,11 @@ from urllib.request import urlopen
 from rich.console import Console
 from rich.table import Table
 
-_debug = os.environ.get('DEBUG')
+_debug = os.environ.get('PYDEBUG')
 
 ARCHS = ('arm', 'arm64', 'x64', 'x86')
 DEFAULT_ARCH = 'x64'
-SYSCALL_DB = pathlib.Path.cwd() / 'syscalldb.json'
+SYSCALL_DB = pathlib.Path(__file__).parent / 'syscalldb.json'
 
 CONVENTIONS = {
     'x86': {'return': 'eax', 'arg0': 'ebx', 'arg1': 'ecx', 'arg2': 'edx', 'arg3': 'esi', 'arg4': 'edi', 'arg5': 'ebp'},
@@ -45,7 +44,7 @@ class Color():
 def info(msg: str): print(Color.green(f'[+] {msg}'))
 def error(msg: str): print(Color.red(f'[!] {msg}'))
 def warning(msg: str): print(Color.yellow(f'[*] {msg}'))
-def debug(msg: str): print(Color.blue(f'[=] {msg}')) if _debug else print('', file=open('/dev/null', 'w'))
+def debug(msg: str): print(Color.blue(f'[-] {msg}')) if _debug else print('', file=open('/dev/null', 'w'))
 
 
 def get_request(url: str) -> None | bytes:
@@ -61,10 +60,14 @@ def get_request(url: str) -> None | bytes:
 def update_syscall_db() -> None:
   def fetch(db: dict, arch: str):
     data = get_request(f'https://api.syscall.sh/v1/syscalls/{arch}')
-    if data: db[arch] = json.loads(data)
+    if data: 
+      db[arch] = json.loads(data)
+      info(f'Updated {arch} syscalls')
 
-  db = {}
-  db['last_updated_ts'] = datetime.now().replace(microsecond=0).isoformat()
+  db = {
+    'last_updated_ts': datetime.now().replace(microsecond=0).isoformat(),
+    'source': 'https://syscall.sh/'
+  }
   threads = [Thread(target=fetch, args=(db, arch)) for arch in ARCHS]
   for thread in threads: thread.start()
   for thread in threads: thread.join()
@@ -156,7 +159,7 @@ class Shellcode:
     )
 
 
-def main():
+def info_main():
   parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument(
       '-a', '--arch',
@@ -164,15 +167,8 @@ def main():
       help=', '.join(ARCHS),
       default=DEFAULT_ARCH
   )
-  subparser = parser.add_subparsers(dest='cmd')
-
-  info_parser = subparser.add_parser('info', help='syscall info')
-  info_parser.add_argument('syscall', nargs='*', help='syscall name(s)')
-  info_parser.add_argument('--update', action='store_true', help='Update syscall database')
-
-  shellcode_parser = subparser.add_parser('shellcode', help='Search shell-storm for shellcode examples')
-  shellcode_parser.add_argument('syscall', nargs='*', help='syscall name(s)')
-  shellcode_parser.add_argument('--get', type=int, help='shell-storm shellcode id')
+  parser.add_argument('syscall', nargs='*', help='syscall name(s)')
+  parser.add_argument('--update', action='store_true', help='Update syscall database')
 
   if len(sys.argv) < 2:
     parser.print_usage()
@@ -180,15 +176,29 @@ def main():
 
   args = parser.parse_args()
 
-  if args.cmd == 'shellcode':
-    shellcode = Shellcode(args.arch)
-    if args.get: shellcode.get(args.get)
-    else: shellcode.display([sc for sc in args.syscall])
+  if args.update:
+    sys.exit(update_syscall_db())
 
-  if args.cmd == 'info':
-    if args.update: sys.exit(update_syscall_db())
-    Syscalls(args.arch).display([sc for sc in args.syscall])
+  Syscalls(args.arch).display([sc for sc in args.syscall])
 
 
-if __name__ == '__main__':
-  main()
+def shellcode_main():
+  parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument(
+      '-a', '--arch',
+      choices=sorted(ARCHS),
+      help=', '.join(ARCHS),
+      default=DEFAULT_ARCH
+  )
+  parser.add_argument('syscall', nargs='*', help='syscall name(s)')
+  parser.add_argument('--get', type=int, help='shell-storm shellcode id')
+
+  if len(sys.argv) < 2:
+    parser.print_usage()
+    sys.exit(1)
+
+  args = parser.parse_args()
+
+  shellcode = Shellcode(args.arch)
+  if args.get: shellcode.get(args.get)
+  else: shellcode.display([sc for sc in args.syscall])
