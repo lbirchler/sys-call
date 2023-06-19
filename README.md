@@ -1,4 +1,4 @@
-# syscall
+# sys-call
 
 CLI tool to display Linux Syscall implementations, calling conventions, and shellcode examples.
 
