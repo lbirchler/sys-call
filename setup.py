@@ -40,8 +40,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'syscall-info=syscall.syscall:CLI.info',
-            'syscall-shellcode=syscall.syscall:CLI.shellcode'
+            'sys-call=syscall.syscall:main'
         ]
     }
 )
