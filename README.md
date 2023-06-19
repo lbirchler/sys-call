@@ -1,15 +1,14 @@
 # syscall
 
-CLI utility to display calling conventions and shellcode examples for Linux
-syscalls 
+CLI utility to display Linux Syscall implementations, calling conventions, and shellcode examples.
 
-Supported Architectures: *ARM*, *ARM64*, *x64*, *x86*
+Supported architectures: arm, arm64, x64, x86
 
-Data Sources:
 
-- Syscall implementations and calling conventions: [syscall.sh](https://syscall.sh) 
-
-- Shellcode Examples: [shell-storm](http://shell-storm.org/shellcode/index.html)
+## Install
+```
+#TODO
+```
 
 ## Usage
 ```
@@ -30,7 +29,7 @@ options:
 
 ### Info
 
-For single syscall
+For single syscall:
 ```
 $ ./syscall.py info execve
                                                                   x64 Syscalls                                                                  
@@ -41,7 +40,7 @@ $ ./syscall.py info execve
 └────┴────────┴─────────────┴──────────────────────┴─────────────────────────┴─────────────────────────┴─────────────┴────────────┴────────────┘
 ```
 
-For multiple syscalls
+For multiple syscalls:
 ```
 $ ./syscall.py info read write exit
                                                         x64 Syscalls                                                        
@@ -55,7 +54,7 @@ $ ./syscall.py info read write exit
 └────┴───────┴─────────────┴──────────────────────┴─────────────────┴──────────────┴─────────────┴────────────┴────────────┘
 ```
 
-For all syscalls
+For all syscalls:
 ```
 $ ./syscall.py info
                                                                x64 Syscalls                                                                
@@ -72,7 +71,7 @@ $ ./syscall.py info
 ...
 ```
 
-Update syscall database
+Update syscall database:
 ```
 ./syscall.py info --update
 [+] Saved syscall db to: ./syscalldb.json
@@ -80,7 +79,7 @@ Update syscall database
 
 ### Shellcode
 
-Search for x86 execve shellcode examples
+Search for execve shellcode examples:
 ```
 $ ./syscall.py shellcode execve
                                                       x86 Shellcode 
@@ -99,7 +98,7 @@ $ ./syscall.py shellcode execve
 └───────────────────────────────┴──────────────┴───────────────────────────────────────────────────────────────────┴─────┘
 ```
 
-Download shellcode example 
+Download shellcode example: 
 ```
 $ ./syscall.py shellcode --get 76
 
@@ -132,3 +131,7 @@ _start:
 
 ```
 
+
+**Data Sources**
+- Syscall implementations and calling conventions: [syscall.sh](https://syscall.sh) 
+- Shellcode Examples: [shell-storm](http://shell-storm.org/shellcode/index.html)
