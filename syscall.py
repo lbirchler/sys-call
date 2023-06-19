@@ -117,15 +117,14 @@ class Syscalls:
       self._syscalls = json.load(f).get(self.arch)
     self._conventions = CONVENTIONS.get(self.arch)
 
-  def search(self, syscall: int | str) -> None | dict:
-    key = 'nr' if str(syscall).isnumeric() else 'name'
-    return next((item for item in self._syscalls if item.get(key) == syscall), None)
+  def search(self, syscall: str) -> None | dict:
+    return next((item for item in self._syscalls if item.get('name') == syscall), None)
 
-  def display(self, syscalls: list[int | str] | None = None) -> None:
+  def display(self, syscalls: list[str] | None = None) -> None:
     table = Table(title=f'{self.arch} Syscalls')
     scs = [self.search(sc) for sc in syscalls] if syscalls else self._syscalls
     if any(sc is None for sc in scs):
-      error(f'Invalid {self.arch} syscall(s): {" ".join(scs)}')
+      error(f'Invalid {self.arch} syscall(s): {" ".join(syscalls)}')
       return
     cols = [
         (f'{k:<7} {self._conventions.get(k, "")}'.rstrip())
@@ -173,5 +172,4 @@ def main():
 
 
 if __name__ == '__main__':
-  debug('test')
   main()
