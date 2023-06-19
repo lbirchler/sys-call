@@ -1,8 +1,12 @@
 # sys-call
 
-CLI tool to display Linux Syscall implementations, calling conventions, and shellcode examples.
+CLI tool to display Linux syscall implementations, calling conventions, and shellcode examples.
 
-Supported architectures: arm, arm64, x64, x86
+Supported Architectures: 
+- arm
+- arm64
+- x86
+- x64
 
 Data Sources:
 - Syscall implementations and calling conventions: [syscall.sh](https://syscall.sh) 
@@ -14,26 +18,35 @@ pip install sys-call
 ```
 
 ## Usage 
-
-### `syscall-info`
 ```
-usage: syscall-info [-h] [-a {arm,arm64,x64,x86}] [--update] [syscall ...]
+usage: sys-call [-h] [-a {arm,arm64,x64,x86}] {shellcode,info} ...
 
 positional arguments:
-  syscall               syscall name(s)
+  {shellcode,info}      commands
 
 options:
   -h, --help            show this help message and exit
   -a {arm,arm64,x64,x86}, --arch {arm,arm64,x64,x86}
                                  defaults to x64
-  --update              Update syscall database
+```
+
+### `sys-call info`
+```
+usage: sys-call info [-h] [--update] [syscall ...]
+
+positional arguments:
+  syscall     syscall name(s)
+
+options:
+  -h, --help  show this help message and exit
+  --update    Update syscall database
 ```
 
 **Examples**
 
 For single syscall:
 ```
-$ syscall-info execve
+$ sys-call info execve
                                                                   x64 Syscalls                                                                  
 ┏━━━━┳━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ nr ┃ name   ┃ return  rax ┃ arg0    rdi          ┃ arg1    rsi             ┃ arg2    rdx             ┃ arg3    r10 ┃ arg4    r8 ┃ arg5    r9 ┃
@@ -44,7 +57,7 @@ $ syscall-info execve
 
 For multiple syscalls:
 ```
-$ syscall-info open read write
+$ sys-call info open read write
                                                         x64 Syscalls                                                        
 ┏━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ nr ┃ name  ┃ return  rax ┃ arg0    rdi          ┃ arg1    rsi     ┃ arg2    rdx  ┃ arg3    r10 ┃ arg4    r8 ┃ arg5    r9 ┃
@@ -52,13 +65,12 @@ $ syscall-info open read write
 │ 2  │ open  │ 0x02        │ const char *filename │ int flags       │ umode_t mode │             │            │            │
 │ 0  │ read  │ 0x00        │ unsigned int fd      │ char *buf       │ size_t count │             │            │            │
 │ 1  │ write │ 0x01        │ unsigned int fd      │ const char *buf │ size_t count │             │            │            │
-│ 60 │ exit  │ 0x3c        │ int error_code       │                 │              │             │            │            │
 └────┴───────┴─────────────┴──────────────────────┴─────────────────┴──────────────┴─────────────┴────────────┴────────────┘
 ```
 
 For all syscalls:
 ```
-$ syscall-info 
+$ sys-call info 
                                                                x64 Syscalls                                                                
 ┏━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
 ┃ nr  ┃ name           ┃ return  rax ┃ arg0    rdi    ┃ arg1    rsi    ┃ arg2    rdx    ┃ arg3    r10    ┃ arg4    r8    ┃ arg5    r9     ┃
@@ -73,9 +85,9 @@ $ syscall-info
 ...
 ```
 
-Update syscall database:
+Update sys-call database:
 ```
-$ syscall-info --update
+$ sys-call info --update
 [+] Updated x64 syscalls
 [+] Updated arm64 syscalls
 [+] Updated arm syscalls
@@ -83,26 +95,24 @@ $ syscall-info --update
 [+] Saved syscall db to: ./syscalldb.json
 ```
 
-### `syscall-shellcode`
+### `sys-call shellcode`
 ```
-usage: syscall-shellcode [-h] [-a {arm,arm64,x64,x86}] [--get GET] [syscall ...]
+usage: sys-call shellcode [-h] [--get GET] [syscall ...]
 
 positional arguments:
-  syscall               syscall name(s)
+  syscall     syscall name(s)
 
 options:
-  -h, --help            show this help message and exit
-  -a {arm,arm64,x64,x86}, --arch {arm,arm64,x64,x86}
-                                 defaults to x64
-  --get GET             shell-storm shellcode id
+  -h, --help  show this help message and exit
+  --get GET   download shell-storm example; specify id
 ```
 
 **Examples**
 
 Search for execve shellcode examples:
 ```
-$ syscall-shellcode execve
-                                                      x86 Shellcode 
+$ sys-call shellcode execve
+                                                      x64 Shellcode 
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━┓
 ┃ author                        ┃ platform     ┃ desc                                                              ┃ id  ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━┩
@@ -120,7 +130,7 @@ $ syscall-shellcode execve
 
 Download shellcode example: 
 ```
-$ syscall-shellcode --get 76
+$ sys-call shellcode --get 76
 
 # [Linux/X86-64]
 # Dummy for shellcode:
