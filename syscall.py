@@ -85,6 +85,7 @@ class Syscalls:
 
   def __init__(self, arch: str) -> None:
     self.arch = arch
+    if not SYSCALL_DB.exists(): update_syscall_db()
     with open(SYSCALL_DB) as f:
       self._syscalls = json.load(f).get(self.arch)
     self._conventions = CONVENTIONS.get(self.arch)
@@ -128,7 +129,7 @@ class Shellcode:
     examples = (self.Example(*e[:-1]) for e in examples if len(e) == 5)
     return list(e for e in examples if self.platform in e.platform)
 
-  def get(self, sid: int):
+  def get(self, sid: int) -> None:
     data = get_request(f'http://shell-storm.org/shellcode/files/shellcode-{sid}.html')
     if not data: error('Invalid shellcode id: %d' % sid); return
     match = re.search(r'<pre[^>]*>([^<]+)</pre>', data.decode())
@@ -175,7 +176,7 @@ def main():
     else: shellcode.display([sc for sc in args.syscall])
 
   if args.cmd == 'info':
-    if args.update: update_syscall_db(); sys.exit(0)
+    if args.update: sys.exit(update_syscall_db())
     Syscalls(args.arch).display([sc for sc in args.syscall])
 
 
